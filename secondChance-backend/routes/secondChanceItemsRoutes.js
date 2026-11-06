@@ -12,10 +12,10 @@ const directoryPath = 'public/images';
 // Set up storage for uploaded files
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, directoryPath); // Specify the upload directory
+    cb(null, directoryPath);
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname); // Use the original file name
+    cb(null, file.originalname);
   },
 });
 
@@ -26,13 +26,9 @@ const upload = multer({ storage: storage });
 router.get('/', async (req, res, next) => {
     logger.info('/ called');
     try {
-        //Step 2: task 1 - insert code here
         const db = await connectToDatabase();
-        //Step 2: task 2 - insert code here
         const collection = db.collection("secondChanceItems");
-        //Step 2: task 3 - insert code here
         const secondChanceItems = await collection.find({}).toArray();
-        //Step 2: task 4 - insert code here
         res.json(secondChanceItems);       
     } catch (e) {
         logger.console.error('oops something went wrong', e)
@@ -43,26 +39,22 @@ router.get('/', async (req, res, next) => {
 // Add a new item
 router.post('/', upload.single('file'), async(req, res,next) => {
     try {
-
-        //Step 3: task 1 - insert code here
         const db = await connectToDatabase();
-        //Step 3: task 2 - insert code here
         const collection = db.collection("secondChanceItems");
-        //Step 3: task 3 - insert code here
-        let newItem = req.body;
-        //Step 3: task 4 - insert code here
-        const result = await collection.findOne({}, { sort: { id: -1 } });
-        newItem.id = (parseInt(result?.id ?? "0") + 1).toString();
 
-        //Step 3: task 5 - insert code here
+        let newItem = req.body;
+
+        const result = await collection.findOne({}, { sort: { id: -1 } });
+
+        newItem.id = (parseInt(result?.id ?? "0") + 1).toString();
         newItem.date_added = Math.floor(new Date().getTime() / 1000);
 
         await collection.insertOne(newItem);
-
         router.post
-
+        logger.info("Item Uploaded.")
         res.status(201).json(newItem);
     } catch (e) {
+        logger.error("Item Upload failed.")
         next(e);
     }
 });
@@ -71,14 +63,13 @@ router.post('/', upload.single('file'), async(req, res,next) => {
 router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
     try {
-        //Step 4: task 1 - insert code here
         const db = await connectToDatabase();
-        //Step 4: task 2 - insert code here
         const collection = db.collection("secondChanceItems");
-        //Step 4: task 3 - insert code here
         const item = await collection.findOne({ id })
-        //Step 4: task 4 - insert code here
-        if (!item) return res.status(404).send("secondChanceItem not found");
+        if (!item) {
+            logger.error("item not found")
+            return res.status(404).send("secondChanceItem not found");
+        }
 
         res.json(item);
     } catch (e) {
@@ -90,17 +81,10 @@ router.get('/:id', async (req, res, next) => {
 router.put('/:id', async(req, res,next) => {
     const { id } = req.params;
     try {
-        //Step 4: task 1 - insert code here
         const db = await connectToDatabase();
-
-        //Step 4: task 2 - insert code here
         const collection = db.collection("secondChanceItems");
-
-        //Step 5: task 3 - insert code here
         const item = await collection.findOne({ id })
         if(!item) res.status(404).send("secondChanceItem not found");
-
-        //Step 5: task 4 - insert code here
         const updatedItem = {
             ...item,
             ...req.body,
@@ -114,7 +98,6 @@ router.put('/:id', async(req, res,next) => {
             { returnDocument: 'after' }
         );
 
-        //Step 5: task 5 - insert code here
         if(updatepreloveItem) {
             res.json({"uploaded":"success"});
         } else {
@@ -130,17 +113,13 @@ router.put('/:id', async(req, res,next) => {
 router.delete('/:id', async(req, res,next) => {
     const { id } = req.params;
     try {
-        //Step 6: task 1 - insert code here
         const db = await connectToDatabase();
-        //Step 6: task 2 - insert code here
         const collection = db.collection("secondChanceItems");
-        //Step 6: task 3 - insert code here
         const oldItem = collection.findOne({ id })
         if(!oldItem) {
             logger.error('secondChanceItem not found');
             res.status(404).json({error: "secondChanceItem doesnt exist"});
         }
-        //Step 6: task 4 - insert code here
         collection.deleteOne({id: req.params.id});
         res.json({"deleted":"success"});
 

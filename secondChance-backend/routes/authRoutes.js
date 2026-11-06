@@ -12,22 +12,18 @@ router.post('/register', async (req, res) => {
     try {
         const { email, password, firstName, lastName } = req.body;
 
-        // Task 1: Connect to `secondChance` in MongoDB through `connectToDatabase` in `db.js`.
         const db = await connectToDatabase();
-        // Task 2: Access MongoDB `users` collection
         const users = db.collection('users');
-        // Task 3: Check if user credentials already exists in the database and throw an error if they do
+
 		const existingEmail = await users.findOne({email});
-        
         if (existingEmail) {
             logger.error('Email is already registered');
             throw new Error("User already exists"); 
         }
-        // Task 4: Create a hash to encrypt the password so that it is not readable in the database
+
         const salt = await bcryptjs.genSalt(10);
         const hash = await bcryptjs.hash(password, salt);
 
-        // Task 5: Insert the user into the database
 		const newUser = await users.insertOne({
             email,
             firstName,
@@ -36,7 +32,6 @@ router.post('/register', async (req, res) => {
             createdAt: new Date()
         });
 
-        // Task 6: Create JWT authentication if passwords match with user._id as payload
 		const payload = {
             user: {
                 id: newUser.insertedId,
@@ -44,15 +39,53 @@ router.post('/register', async (req, res) => {
         };
 
         const authtoken = jwt.sign(payload, JWT_SECRET);
-        // Task 7: Log the successful registration using the logger
-        logger.info("User successfully registered!");
 
-        // Task 8: Return the user email and the token as a JSON
+        logger.info("User successfully registered!");
         res.status(200).json({ authtoken, email });
     } catch (e) {
         logger.error(e);
          return res.status(500).send('Internal server error');
     }
 });
+
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const db = await connectToDatabase();
+        const users = db.collection('users');
+
+        const existingUser = await users.findOne({email});
+        if (!existingUser) {
+            logger.warning("Email is not registered!");
+            return res.status(401).json({error: "Email is not registered!"})
+        }    
+        
+        let result = await bcryptjs.compare(password, existingUser.password);
+        if (!result) {
+            logger.warning("Password does not match!");
+            return res.status(401).json({error: "password incorrect"});
+        }
+
+        const userName = existingUser.firstName;
+        const userEmail = existingUser.email;
+
+        let payload = {
+            user: {
+                id: existingUser._id.toString(),
+            }
+        };
+        const authtoken = jwt.sign(payload, JWT_SECRET);
+
+        return res.status(200).json({
+            authtoken,
+            email: userEmail,
+            firstName: userName
+        });
+        
+    } catch (e) {
+        logger.error(e);
+        return res.status(500).json({error: "Internal server error"});
+    }
+})
 
 module.exports = router;
