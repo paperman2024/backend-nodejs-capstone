@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const connectToDatabase = require('../models/db.js');
-const logger = require('../logger.js');
+const pino = require('pino');
+const logger = pino();
 
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -44,14 +45,12 @@ router.post('/register', async (req, res) => {
 
         const authtoken = jwt.sign(payload, JWT_SECRET);
         // Task 7: Log the successful registration using the logger
-		if (authtoken) {
-            logger.info("User successfully registered!");
-        }
-
+        logger.info("User successfully registered!");
 
         // Task 8: Return the user email and the token as a JSON
         res.status(200).json({ authtoken, email });
     } catch (e) {
+        logger.error(e);
          return res.status(500).send('Internal server error');
     }
 });
