@@ -3,6 +3,8 @@ const router = express.Router();
 const connectToDatabase = require('../models/db.js');
 const pino = require('pino');
 const logger = pino();
+const { body, validationResult } = require('express-validator');
+
 
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -80,6 +82,60 @@ router.post('/login', async (req, res) => {
             authtoken,
             email: userEmail,
             firstName: userName
+        });
+        
+    } catch (e) {
+        logger.error(e);
+        return res.status(500).json({error: "Internal server error"});
+    }
+})
+
+router.put('/update', async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        logger.error('Validation errors in update request', errors.array());
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        const email = req.headers.email
+        if(!email) {
+            logger.error("Email not found in the header!");
+            return res.status(499).json({error: "Email not found in the header"});
+        }
+
+        const db = await connectToDatabase();
+        const users = db.collection('users');
+
+        const existingUser = await users.findOne({ email });
+
+        if (!existingUser) {
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
+
+        existingUser.firstName = req.body.name;
+        existingUser.updatedAt = new Date();
+
+        const updatedUser = await users.findOneAndUpdate(
+            { email }, 
+            { $set: existingUser }, 
+            { returnDocument: 'after' }
+        )
+
+        const payload = {
+            user: {
+               id: updatedUser._id.toString(),
+            },
+        };
+        
+        const authtoken = jwt.sign(payload, JWT_SECRET);
+
+        return res.status(200).json({
+            authtoken,
+            email: updatedUser.email,
+            firstName: updatedUser.firstName
         });
         
     } catch (e) {
