@@ -13,7 +13,7 @@ const port = 3060
 
 // Connect to MongoDB; we just do this one time
 connectToDatabase().then(() => {
-  pinoLogger.info('Connected to DB');
+  pinoLogger.info('Connected to DB')
 })
   .catch((e) => console.error('Failed to connect to DB', e))
 
@@ -29,7 +29,6 @@ const secondChanceItemsRoutes = require('./routes/secondChanceItemsRoutes.js')
 
 // Search API Task 1: import the searchRoutes and store in a constant called searchRoutes
 const searchRoutes = require('./routes/searchRoutes.js')
-
 
 const pinoHttp = require('pino-http')
 const logger = require('./logger')
@@ -50,12 +49,12 @@ app.use('/api/secondchance/search', searchRoutes)
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(500).send('Internal Server Error')
-});
+})
 
-app.get("/", (req,res) => {
+app.get('/', (req, res) => {
   res.send('Inside the server')
 })
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
-});
+})
